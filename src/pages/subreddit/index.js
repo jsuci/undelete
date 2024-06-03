@@ -4,6 +4,7 @@ import { getRemovedThreadIDs } from '../../api/removeddit'
 import { getThreads, isThreadDeleted } from '../../api/reddit'
 import Post from '../common/Post'
 import { connect } from '../../state'
+import { combineData, sortCombinedData } from '../../utils'
 
 class Subreddit extends React.Component {
  state = {
@@ -32,17 +33,19 @@ class Subreddit extends React.Component {
     this.setState({ threads: [], loading: true })
     this.props.global.setLoading('Loading removed threads...')
     getRemovedThreadIDs(subreddit)
-      .then(response => {
+      .then(async (response) => {
           const {data} = response
           const threadIDs = data.map(({id}) => id)
-          return getThreads(threadIDs)
+
+          const pushData = data
+          const redditData = await getThreads(threadIDs)
+
+          const results = combineData(pushData, redditData)
+          const sortedData = sortCombinedData(results, "ascending");
+
+          return sortedData
       })
       .then(threads => {
-        threads.forEach(thread => {
-          thread.removed = isThreadDeleted(thread)
-          thread.selftext = ''
-          thread.url = thread.permalink
-        })
         this.setState({ threads })
         this.props.global.setSuccess()
       })
