@@ -1,4 +1,5 @@
 import SnuOwnd from 'snuownd'
+import { isThreadDeleted } from './api/reddit';
 
 const markdown = SnuOwnd.getParser()
 
@@ -136,3 +137,37 @@ export const editedTitles = [
   'The first archived edit is shown; click to change',
   'The most recent edit is shown; click to change'
 ]
+
+// create a set of reddit and pushpull data
+export const combineData = (pushData, redditData) => {
+  const redditDataMap = new Map();
+  redditData.forEach(thread => {
+      redditDataMap.set(thread.id, thread);
+  });
+
+  pushData.forEach(thread => {
+      const correspondingRedditThread = redditDataMap.get(thread.id);
+
+      if (!correspondingRedditThread || isThreadDeleted(correspondingRedditThread)) {
+          thread.removed = true;
+          thread.selftext = '';
+
+      } else {
+          thread.removed = false;
+          thread.selftext = '';
+          thread.url = correspondingRedditThread.permalink;
+      }
+  });
+
+  return pushData;
+};
+
+// sort the combined data
+export const sortCombinedData = (combinedData, order) => {
+  if (order === "ascending") {
+      combinedData.sort((a, b) => a.removed - b.removed);
+  } else if (order === "descending") {
+      combinedData.sort((a, b) => b.removed - a.removed);
+  }
+  return combinedData;
+};
